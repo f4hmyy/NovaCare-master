@@ -1456,6 +1456,432 @@ app.delete('/api/staff/:id', async (req, res) => {
   }
 });
 
+// ----------------- PRESCRIPTION ROUTES -----------------
+// Get all prescriptions
+app.get('/api/prescription', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        p.PRESCRIPTIONID,
+        p.RECORDID,
+        p.INSTRUCTION,
+        r.VISITDATE,
+        r.PATIENTIC,
+        pt.FIRSTNAME || ' ' || pt.LASTNAME as PATIENT_NAME,
+        r.DOCTORID,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        r.DIAGNOSIS
+      FROM PRESCRIPTION p
+      JOIN MEDICALRECORD r ON p.RECORDID = r.RECORDID
+      JOIN PATIENTS pt ON r.PATIENTIC = pt.PATIENTIC
+      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      ORDER BY r.VISITDATE DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching prescriptions:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch prescriptions',
+      error: err.message
+    });
+  }
+});
+
+// Get single prescription with items
+app.get('/api/prescription/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const prescriptionResult = await exec(
+      `SELECT 
+        p.PRESCRIPTIONID,
+        p.RECORDID,
+        p.INSTRUCTION,
+        r.VISITDATE,
+        r.PATIENTIC,
+        pt.FIRSTNAME || ' ' || pt.LASTNAME as PATIENT_NAME,
+        r.DOCTORID,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        r.DIAGNOSIS,
+        r.SYMPTOM
+      FROM PRESCRIPTION p
+      JOIN MEDICALRECORD r ON p.RECORDID = r.RECORDID
+      JOIN PATIENTS pt ON r.PATIENTIC = pt.PATIENTIC
+      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      WHERE p.PRESCRIPTIONID = :id`,
+      { id }
+    );
+
+    if (prescriptionResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prescription not found'
+      });
+    }
+
+    const itemsResult = await exec(
+      `SELECT 
+        pi.PRESCRIPTIONITEMID,
+        pi.PRESCRIPTIONID,
+        pi.MEDICINEID,
+        m.MEDNAME,
+        m.MEDDOSAGEFORM,
+        pi.QUANTITY,
+        pi.DOSAGE,
+        pi.DATE
+      FROM PRESCRIPTIONITEM pi
+      JOIN MEDICINE m ON pi.MEDICINEID = m.MEDICINEID
+      WHERE pi.PRESCRIPTIONID = :id`,
+      { id }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        ...prescriptionResult.rows[0],
+        items: itemsResult.rows
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching prescription:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch prescription',
+      error: err.message
+    });
+  }
+});
+
+// Create prescription with items
+app.post('/api/prescription', async (req, res) => {
+  const { recordId, instruction, items } = req.body;
+
+  if (!recordId || !items || items.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Required fields: recordId, items (array with at least one item)'
+    });
+  }
+
+  let connection;
+  try {
+    connection = await oracledb.getConnection();
+
+    const prescriptionResult = await connection.execute(
+      `INSERT INTO PRESCRIPTION (RECORDID, INSTRUCTION) 
+       VALUES (:recordId, :instruction)
+       RETURNING PRESCRIPTIONID INTO :id`,
+      {
+        recordId,
+        instruction: instruction || null,
+        id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      },
+      { autoCommit: false }
+    );
+
+    const prescriptionId = prescriptionResult.outBinds.id[0];
+
+    for (const item of items) {
+      await connection.execute(
+        `INSERT INTO PRESCRIPTIONITEM 
+          (PRESCRIPTIONID, MEDICINEID, QUANTITY, DOSAGE, DATE) 
+         VALUES 
+          (:prescriptionId, :medicineId, :quantity, :dosage, SYSDATE)`,
+        {
+          prescriptionId,
+          medicineId: item.medicineId,
+          quantity: item.quantity,
+          dosage: item.dosage
+        },
+        { autoCommit: false }
+      );
+
+      await connection.execute(
+        `UPDATE MEDICINE 
+         SET CURRENTSTOCK = CURRENTSTOCK - :quantity 
+         WHERE MEDICINEID = :medicineId`,
+        {
+          quantity: item.quantity,
+          medicineId: item.medicineId
+        },
+        { autoCommit: false }
+      );
+    }
+
+    await connection.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'Prescription created successfully',
+      prescriptionId: prescriptionId
+    });
+  } catch (err) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error('Error creating prescription:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create prescription',
+      error: err.message
+    });
+  } finally {
+    if (connection) {
+      await connection.close();
+    }
+  }
+});
+
+// Delete prescription
+app.delete('/api/prescription/:id', async (req, res) => {
+  const { id } = req.params;
+
+  let connection;
+  try {
+    connection = await oracledb.getConnection();
+
+    await connection.execute(
+      `DELETE FROM PRESCRIPTIONITEM WHERE PRESCRIPTIONID = :id`,
+      { id },
+      { autoCommit: false }
+    );
+
+    const result = await connection.execute(
+      `DELETE FROM PRESCRIPTION WHERE PRESCRIPTIONID = :id`,
+      { id },
+      { autoCommit: false }
+    );
+
+    await connection.commit();
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prescription not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Prescription deleted successfully'
+    });
+  } catch (err) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error('Error deleting prescription:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete prescription',
+      error: err.message
+    });
+  } finally {
+    if (connection) {
+      await connection.close();
+    }
+  }
+});
+
+// Get medical records (needed for prescription creation)
+app.get('/api/medicalrecords', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        r.RECORDID,
+        r.VISITDATE,
+        r.PATIENTIC,
+        p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
+        r.DOCTORID,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        r.SYMPTOM,
+        r.DIAGNOSIS
+      FROM MEDICALRECORD r
+      JOIN PATIENTS p ON r.PATIENTIC = p.PATIENTIC
+      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      ORDER BY r.VISITDATE DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching medical records:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch medical records',
+      error: err.message
+    });
+  }
+});
+
+// Get single medical record by ID
+app.get('/api/medicalrecords/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await exec(`
+      SELECT 
+        r.RECORDID,
+        r.VISITDATE,
+        r.PATIENTIC,
+        p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
+        r.DOCTORID,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        r.SYMPTOM,
+        r.DIAGNOSIS
+      FROM MEDICALRECORD r
+      JOIN PATIENTS p ON r.PATIENTIC = p.PATIENTIC
+      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      WHERE r.RECORDID = :id
+    `, { id });
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Medical record not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error fetching medical record:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch medical record',
+      error: err.message
+    });
+  }
+});
+
+// Create new medical record
+app.post('/api/medicalrecords', async (req, res) => {
+  const { patientic, doctorid, visitdate, symptom, diagnosis } = req.body;
+
+  if (!patientic || !doctorid || !visitdate) {
+    return res.status(400).json({
+      success: false,
+      message: 'Patient IC, Doctor ID, and Visit Date are required'
+    });
+  }
+
+  try {
+    const result = await exec(`
+      INSERT INTO MEDICALRECORD (RECORDID, PATIENTIC, DOCTORID, VISITDATE, SYMPTOM, DIAGNOSIS)
+      VALUES (MEDICALRECORD_SEQ.NEXTVAL, :patientic, :doctorid, TO_DATE(:visitdate, 'YYYY-MM-DD'), :symptom, :diagnosis)
+      RETURNING RECORDID INTO :recordid
+    `, {
+      patientic,
+      doctorid: parseInt(doctorid),
+      visitdate,
+      symptom: symptom || null,
+      diagnosis: diagnosis || null,
+      recordid: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Medical record created successfully',
+      data: { recordId: result.outBinds.recordid[0] }
+    });
+  } catch (err) {
+    console.error('Error creating medical record:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create medical record',
+      error: err.message
+    });
+  }
+});
+
+// Update medical record
+app.put('/api/medicalrecords/:id', async (req, res) => {
+  const { id } = req.params;
+  const { patientic, doctorid, visitdate, symptom, diagnosis } = req.body;
+
+  if (!patientic || !doctorid || !visitdate) {
+    return res.status(400).json({
+      success: false,
+      message: 'Patient IC, Doctor ID, and Visit Date are required'
+    });
+  }
+
+  try {
+    const result = await exec(`
+      UPDATE MEDICALRECORD
+      SET PATIENTIC = :patientic,
+          DOCTORID = :doctorid,
+          VISITDATE = TO_DATE(:visitdate, 'YYYY-MM-DD'),
+          SYMPTOM = :symptom,
+          DIAGNOSIS = :diagnosis
+      WHERE RECORDID = :id
+    `, {
+      patientic,
+      doctorid: parseInt(doctorid),
+      visitdate,
+      symptom: symptom || null,
+      diagnosis: diagnosis || null,
+      id
+    });
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Medical record not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Medical record updated successfully'
+    });
+  } catch (err) {
+    console.error('Error updating medical record:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update medical record',
+      error: err.message
+    });
+  }
+});
+
+// Delete medical record
+app.delete('/api/medicalrecords/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(`
+      DELETE FROM MEDICALRECORD WHERE RECORDID = :id
+    `, { id });
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Medical record not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Medical record deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting medical record:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete medical record',
+      error: err.message
+    });
+  }
+});
+
 // ----------------- MEDICINE ROUTES -----------------
 // Get all medicines
 app.get('/api/medicine', async (req, res) => {
