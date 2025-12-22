@@ -18,6 +18,7 @@ export default function ViewDoctors() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchDoctors();
@@ -99,6 +100,32 @@ export default function ViewDoctors() {
             <p className="text-gray-600">Manage all doctors in the system</p>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by name, email, phone, or license number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <svg
+                className="absolute left-3 top-3.5 h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -155,7 +182,11 @@ export default function ViewDoctors() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {doctors.map((doctor) => (
+                  {doctors.filter((doctor) =>
+                    `${doctor.FIRST_NAME} ${doctor.LAST_NAME} ${doctor.EMAIL} ${doctor.PHONE} ${doctor.LICENSE_NUMBER}`
+                      .toLowerCase()
+                      .includes(searchQuery.toLowerCase())
+                  ).map((doctor) => (
                     <tr key={doctor.DOCTOR_ID} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">

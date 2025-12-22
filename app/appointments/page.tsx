@@ -25,6 +25,7 @@ export default function Appointments() {
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchAppointments();
@@ -115,7 +116,11 @@ export default function Appointments() {
   const filteredAppointments = appointments.filter((apt) => {
     const matchesDate = !filterDate || apt.APPOINTMENT_DATE.startsWith(filterDate);
     const matchesStatus = filterStatus === "All" || apt.STATUS === filterStatus;
-    return matchesDate && matchesStatus;
+    const matchesSearch = !searchQuery || 
+      `${apt.PATIENT_NAME} ${apt.DOCTOR_NAME} ${apt.REASON_TO_VISIT} ${apt.ROOM_TYPE}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    return matchesDate && matchesStatus && matchesSearch;
   });
 
   return (
@@ -155,6 +160,35 @@ export default function Appointments() {
 
           {/* Filters */}
           <div className="mb-6 flex flex-wrap gap-4">
+            {/* Search Bar */}
+            <div className="flex-1 min-w-[300px]">
+              <label htmlFor="searchQuery" className="block text-sm font-medium text-gray-700 mb-2">
+                Search
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="searchQuery"
+                  placeholder="Search by patient, doctor, or reason..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+                <svg
+                  className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
             <div>
               <label htmlFor="filterDate" className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by Date
@@ -184,12 +218,13 @@ export default function Appointments() {
                 <option value="No-Show">No-Show</option>
               </select>
             </div>
-            {(filterDate || filterStatus !== "All") && (
+            {(filterDate || filterStatus !== "All" || searchQuery) && (
               <div className="flex items-end">
                 <button
                   onClick={() => {
                     setFilterDate("");
                     setFilterStatus("All");
+                    setSearchQuery("");
                   }}
                   className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-800"
                 >
