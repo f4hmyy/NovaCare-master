@@ -30,7 +30,7 @@ export default function EditMedicine() {
 
   const fetchMedicine = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/medicines/${medicineId}`);
+      const response = await fetch(`http://localhost:5000/api/medicine/${medicineId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -76,7 +76,7 @@ export default function EditMedicine() {
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch(`http://localhost:5000/api/medicines/${medicineId}`, {
+      const response = await fetch(`http://localhost:5000/api/medicine/${medicineId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

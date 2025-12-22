@@ -27,7 +27,7 @@ export default function Medicines() {
 
   const fetchMedicines = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/medicines");
+      const response = await fetch("http://localhost:5000/api/medicine");
       const data = await response.json();
 
       console.log("Fetched medicines:", data);
@@ -50,7 +50,7 @@ export default function Medicines() {
     if (!confirm("Are you sure you want to delete this medicine?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/medicines/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/medicine/${id}`, {
         method: "DELETE",
       });
 

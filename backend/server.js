@@ -927,9 +927,9 @@ app.delete('/api/appointments/:id', async (req, res) => {
   }
 });
 
-// ----------------- MEDICINES ROUTES -----------------
+// ----------------- MEDICINE ROUTES -----------------
 // Get all medicines
-app.get('/api/medicines', async (req, res) => {
+app.get('/api/medicine', async (req, res) => {
   try {
     const result = await exec(`
       SELECT 
@@ -962,7 +962,7 @@ app.get('/api/medicines', async (req, res) => {
 });
 
 // Add new medicine
-app.post('/api/medicines', async (req, res) => {
+app.post('/api/medicine', async (req, res) => {
   const {
     name,
     postingDate,
@@ -1019,7 +1019,7 @@ app.post('/api/medicines', async (req, res) => {
 });
 
 // Get single medicine
-app.get('/api/medicines/:id', async (req, res) => {
+app.get('/api/medicine/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -1062,7 +1062,7 @@ app.get('/api/medicines/:id', async (req, res) => {
 });
 
 // Update medicine
-app.put('/api/medicines/:id', async (req, res) => {
+app.put('/api/medicine/:id', async (req, res) => {
   const { id } = req.params;
   const {
     name,
@@ -1118,7 +1118,7 @@ app.put('/api/medicines/:id', async (req, res) => {
 });
 
 // Delete medicine
-app.delete('/api/medicines/:id', async (req, res) => {
+app.delete('/api/medicine/:id', async (req, res) => {
   const { id } = req.params;
 
   try {

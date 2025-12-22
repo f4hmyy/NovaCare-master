@@ -31,7 +31,7 @@ export default function AddMedicine() {
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch("http://localhost:5000/api/medicines", {
+      const response = await fetch("http://localhost:5000/api/medicine", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
