@@ -2130,6 +2130,198 @@ app.delete('/api/medicine/:id', async (req, res) => {
   }
 });
 
+// ----------------- INVOICE ROUTES -----------------
+// Get all invoices
+app.get('/api/invoice', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        i.INVOICEID,
+        i.APPOINTMENTID,
+        i.TOTALAMOUNT,
+        i.PAYMENTMETHOD,
+        i.DATEPAID,
+        a.APPOINTMENTDATE,
+        a.PATIENTIC as PATIENT_IC,
+        p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        CASE WHEN i.DATEPAID IS NOT NULL THEN 'Paid' ELSE 'Pending' END as PAYMENT_STATUS
+      FROM INVOICE i
+      JOIN APPOINTMENTS a ON i.APPOINTMENTID = a.APPOINTMENTID
+      JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
+      JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
+      ORDER BY i.INVOICEID DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching invoices:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch invoices',
+      error: err.message
+    });
+  }
+});
+
+// Get single invoice by ID
+app.get('/api/invoice/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await exec(`
+      SELECT 
+        i.INVOICEID,
+        i.APPOINTMENTID,
+        i.TOTALAMOUNT,
+        i.PAYMENTMETHOD,
+        i.DATEPAID,
+        a.APPOINTMENTDATE,
+        a.PATIENTIC as PATIENT_IC,
+        p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        a.REASONTOVISIT as REASON_TO_VISIT,
+        CASE WHEN i.DATEPAID IS NOT NULL THEN 'Paid' ELSE 'Pending' END as PAYMENT_STATUS
+      FROM INVOICE i
+      JOIN APPOINTMENTS a ON i.APPOINTMENTID = a.APPOINTMENTID
+      JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
+      JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
+      WHERE i.INVOICEID = :id
+    `, { id });
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error fetching invoice:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch invoice',
+      error: err.message
+    });
+  }
+});
+
+// Create new invoice
+app.post('/api/invoice', async (req, res) => {
+  const { appointmentid, totalamount, paymentmethod, datepaid } = req.body;
+
+  if (!appointmentid || !totalamount) {
+    return res.status(400).json({
+      success: false,
+      message: 'Appointment ID and Total Amount are required'
+    });
+  }
+
+  try {
+    const result = await exec(`
+      INSERT INTO INVOICE (APPOINTMENTID, TOTALAMOUNT, PAYMENTMETHOD, DATEPAID)
+      VALUES (:appointmentid, :totalamount, :paymentmethod, ${datepaid ? 'TO_DATE(:datepaid, \'YYYY-MM-DD\')' : 'NULL'})
+      RETURNING INVOICEID INTO :invoiceid
+    `, {
+      appointmentid: parseInt(appointmentid),
+      totalamount: parseFloat(totalamount),
+      paymentmethod: paymentmethod || null,
+      ...(datepaid && { datepaid }),
+      invoiceid: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Invoice created successfully',
+      data: { invoiceId: result.outBinds.invoiceid[0] }
+    });
+  } catch (err) {
+    console.error('Error creating invoice:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create invoice',
+      error: err.message
+    });
+  }
+});
+
+// Update invoice (mark as paid)
+app.put('/api/invoice/:id', async (req, res) => {
+  const { id } = req.params;
+  const { totalamount, paymentmethod, datepaid } = req.body;
+
+  try {
+    const result = await exec(`
+      UPDATE INVOICE
+      SET TOTALAMOUNT = :totalamount,
+          PAYMENTMETHOD = :paymentmethod,
+          DATEPAID = ${datepaid ? 'TO_DATE(:datepaid, \'YYYY-MM-DD\')' : 'NULL'}
+      WHERE INVOICEID = :id
+    `, {
+      totalamount: parseFloat(totalamount),
+      paymentmethod: paymentmethod || null,
+      ...(datepaid && { datepaid }),
+      id
+    });
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Invoice updated successfully'
+    });
+  } catch (err) {
+    console.error('Error updating invoice:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update invoice',
+      error: err.message
+    });
+  }
+});
+
+// Delete invoice
+app.delete('/api/invoice/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `DELETE FROM INVOICE WHERE INVOICEID = :id`,
+      { id }
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Invoice deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting invoice:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete invoice',
+      error: err.message
+    });
+  }
+});
+
 // ----------------- SQL QUERY CONSOLE -----------------
 // Execute custom SQL query (for admin/development use)
 app.post('/api/query', async (req, res) => {
