@@ -263,6 +263,7 @@ export default function AddInvoice() {
                 <option value="Card">Card</option>
                 <option value="Insurance">Insurance</option>
                 <option value="Online Transfer">Online Transfer</option>
+                <option value="QR">QR Payment</option>
               </select>
             </div>
 

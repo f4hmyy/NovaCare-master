@@ -15,6 +15,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Serve static files for payment proofs
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Body Parser Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -2279,7 +2282,6 @@ app.post('/api/invoice', async (req, res) => {
 
     const medicineCost = prescriptionCostResult.rows[0]?.MEDICINE_COST || 0;
     
-    // If totalamount is provided, use it; otherwise use only medicine cost
     // If totalamount is provided, add medicine cost to it
     const finalAmount = totalamount 
       ? parseFloat(totalamount) + medicineCost 
