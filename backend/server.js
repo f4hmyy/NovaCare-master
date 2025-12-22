@@ -1519,6 +1519,8 @@ app.get('/api/prescription/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
+    console.log('Fetching prescription with ID:', id);
+    
     const prescriptionResult = await exec(
       `SELECT 
         p.PRESCRIPTIONID,
@@ -1540,6 +1542,8 @@ app.get('/api/prescription/:id', async (req, res) => {
       { id }
     );
 
+    console.log('Prescription result:', prescriptionResult.rows);
+
     if (prescriptionResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -1547,6 +1551,7 @@ app.get('/api/prescription/:id', async (req, res) => {
       });
     }
 
+    // Fetch prescription items (may be empty)
     const itemsResult = await exec(
       `SELECT 
         pi.PRESCRIPTIONITEMID,
@@ -1556,22 +1561,25 @@ app.get('/api/prescription/:id', async (req, res) => {
         m.MEDDOSAGEFORM,
         pi.QUANTITY,
         pi.DOSAGE,
-        pi.DATE
+        pi.DATEPRESCRIBED
       FROM PRESCRIPTIONITEM pi
       JOIN MEDICINE m ON pi.MEDICINEID = m.MEDICINEID
       WHERE pi.PRESCRIPTIONID = :id`,
       { id }
     );
 
+    console.log('Items result:', itemsResult.rows);
+
     res.json({
       success: true,
       data: {
         ...prescriptionResult.rows[0],
-        items: itemsResult.rows
+        items: itemsResult.rows || []
       }
     });
   } catch (err) {
     console.error('Error fetching prescription:', err);
+    console.error('Error stack:', err.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch prescription',
@@ -2212,25 +2220,80 @@ app.get('/api/invoice/:id', async (req, res) => {
   }
 });
 
+// Get prescription medicine cost for an appointment
+app.get('/api/appointment/:id/prescription-cost', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(`
+      SELECT 
+        NVL(SUM(pi.QUANTITY * m.MEDPRICE), 0) as MEDICINE_COST,
+        COUNT(DISTINCT p.PRESCRIPTIONID) as PRESCRIPTION_COUNT,
+        COUNT(pi.PRESCRIPTIONITEMID) as MEDICINE_COUNT
+      FROM PRESCRIPTION p
+      JOIN MEDICALRECORD r ON p.RECORDID = r.RECORDID
+      LEFT JOIN PRESCRIPTIONITEM pi ON p.PRESCRIPTIONID = pi.PRESCRIPTIONID
+      LEFT JOIN MEDICINE m ON pi.MEDICINEID = m.MEDICINEID
+      WHERE r.APPOINTMENTID = :id
+    `, { id });
+
+    res.json({
+      success: true,
+      data: {
+        medicineCost: result.rows[0]?.MEDICINE_COST || 0,
+        prescriptionCount: result.rows[0]?.PRESCRIPTION_COUNT || 0,
+        medicineCount: result.rows[0]?.MEDICINE_COUNT || 0
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching prescription cost:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch prescription cost',
+      error: err.message
+    });
+  }
+});
+
 // Create new invoice
 app.post('/api/invoice', async (req, res) => {
   const { appointmentid, totalamount, paymentmethod, datepaid } = req.body;
 
-  if (!appointmentid || !totalamount) {
+  if (!appointmentid) {
     return res.status(400).json({
       success: false,
-      message: 'Appointment ID and Total Amount are required'
+      message: 'Appointment ID is required'
     });
   }
 
   try {
+    // Calculate prescription medicine cost for this appointment
+    const prescriptionCostResult = await exec(`
+      SELECT NVL(SUM(pi.QUANTITY * m.MEDPRICE), 0) as MEDICINE_COST
+      FROM PRESCRIPTION p
+      JOIN MEDICALRECORD r ON p.RECORDID = r.RECORDID
+      JOIN PRESCRIPTIONITEM pi ON p.PRESCRIPTIONID = pi.PRESCRIPTIONID
+      JOIN MEDICINE m ON pi.MEDICINEID = m.MEDICINEID
+      WHERE r.APPOINTMENTID = :appointmentid
+    `, { appointmentid: parseInt(appointmentid) });
+
+    const medicineCost = prescriptionCostResult.rows[0]?.MEDICINE_COST || 0;
+    
+    // If totalamount is provided, use it; otherwise use only medicine cost
+    // If totalamount is provided, add medicine cost to it
+    const finalAmount = totalamount 
+      ? parseFloat(totalamount) + medicineCost 
+      : medicineCost;
+
+    console.log(`Invoice for appointment ${appointmentid}: Base amount: ${totalamount || 0}, Medicine cost: ${medicineCost}, Final amount: ${finalAmount}`);
+
     const result = await exec(`
       INSERT INTO INVOICE (APPOINTMENTID, TOTALAMOUNT, PAYMENTMETHOD, DATEPAID)
       VALUES (:appointmentid, :totalamount, :paymentmethod, ${datepaid ? 'TO_DATE(:datepaid, \'YYYY-MM-DD\')' : 'NULL'})
       RETURNING INVOICEID INTO :invoiceid
     `, {
       appointmentid: parseInt(appointmentid),
-      totalamount: parseFloat(totalamount),
+      totalamount: finalAmount,
       paymentmethod: paymentmethod || null,
       ...(datepaid && { datepaid }),
       invoiceid: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
@@ -2239,7 +2302,11 @@ app.post('/api/invoice', async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Invoice created successfully',
-      data: { invoiceId: result.outBinds.invoiceid[0] }
+      data: { 
+        invoiceId: result.outBinds.invoiceid[0],
+        medicineCost: medicineCost,
+        totalAmount: finalAmount
+      }
     });
   } catch (err) {
     console.error('Error creating invoice:', err);

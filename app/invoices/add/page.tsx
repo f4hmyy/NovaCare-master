@@ -20,6 +20,11 @@ export default function AddInvoice() {
   const [error, setError] = useState("");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [prescriptionCost, setPrescriptionCost] = useState({
+    medicineCost: 0,
+    prescriptionCount: 0,
+    medicineCount: 0
+  });
 
   const [formData, setFormData] = useState({
     appointmentid: "",
@@ -59,6 +64,25 @@ export default function AddInvoice() {
     if (name === "appointmentid") {
       const apt = appointments.find((a) => a.APPOINTMENT_ID === parseInt(value));
       setSelectedAppointment(apt || null);
+      
+      // Fetch prescription cost for this appointment
+      if (value) {
+        fetchPrescriptionCost(value);
+      } else {
+        setPrescriptionCost({ medicineCost: 0, prescriptionCount: 0, medicineCount: 0 });
+      }
+    }
+  };
+
+  const fetchPrescriptionCost = async (appointmentId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/appointment/${appointmentId}/prescription-cost`);
+      const data = await response.json();
+      if (data.success) {
+        setPrescriptionCost(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching prescription cost:", err);
     }
   };
 
@@ -154,13 +178,38 @@ export default function AddInvoice() {
                     </span>
                   </div>
                 </div>
+                
+                {/* Prescription Cost Info */}
+                {prescriptionCost.prescriptionCount > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-2">Prescription Medicines</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Number of Medicines:</span>
+                        <span className="ml-2 text-gray-900">{prescriptionCost.medicineCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Medicine Cost:</span>
+                        <span className="ml-2 text-green-600 font-semibold">
+                          MYR {prescriptionCost.medicineCost.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                      <svg className="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Medicine costs will be automatically added to the consultation fee you enter below.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Total Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Total Amount (MYR) <span className="text-red-500">*</span>
+                Consultation Fee (MYR) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -173,6 +222,29 @@ export default function AddInvoice() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="0.00"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Enter the consultation/service fee. Medicine costs will be added automatically.
+              </p>
+              {prescriptionCost.medicineCost > 0 && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-600">Consultation Fee:</span>
+                      <span className="text-gray-900">MYR {formData.totalamount || '0.00'}</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-600">Medicine Cost:</span>
+                      <span className="text-gray-900">MYR {prescriptionCost.medicineCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-green-300 font-semibold">
+                      <span className="text-gray-900">Final Invoice Total:</span>
+                      <span className="text-green-600">
+                        MYR {(parseFloat(formData.totalamount || '0') + prescriptionCost.medicineCost).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Payment Method */}

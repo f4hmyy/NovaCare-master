@@ -11,7 +11,7 @@ interface PrescriptionItem {
   MEDDOSAGEFORM: string;
   QUANTITY: number;
   DOSAGE: string;
-  DATE: string;
+  DATEPRESCRIBED: string;
 }
 
 interface PrescriptionDetail {
@@ -204,7 +204,7 @@ export default function ViewPrescription() {
                       <p className="text-gray-900">{item.DOSAGE}</p>
                     </div>
                     <div className="mt-2 text-xs text-gray-500">
-                      Prescribed on: {formatDate(item.DATE)}
+                      Prescribed on: {formatDate(item.DATEPRESCRIBED)}
                     </div>
                   </div>
                 ))}
