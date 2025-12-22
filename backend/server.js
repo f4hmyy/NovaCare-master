@@ -1612,7 +1612,7 @@ app.post('/api/prescription', async (req, res) => {
     for (const item of items) {
       await connection.execute(
         `INSERT INTO PRESCRIPTIONITEM 
-          (PRESCRIPTIONID, MEDICINEID, QUANTITY, DOSAGE, DATE) 
+          (PRESCRIPTIONID, MEDICINEID, QUANTITY, DOSAGE, DATEPRESCRIBED) 
          VALUES 
           (:prescriptionId, :medicineId, :quantity, :dosage, SYSDATE)`,
         {
