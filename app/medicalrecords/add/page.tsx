@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface Appointment {
-  APPOINTMENTID: number;
+  APPOINTMENT_ID: number;
   PATIENT_IC: string;
   PATIENT_NAME: string;
   DOCTOR_NAME: string;
-  APPOINTMENTDATE: string;
-  APPOINTMENTTIME: string;
+  APPOINTMENT_DATE: string;
+  APPOINTMENT_TIME: string;
   STATUS: string;
 }
 
@@ -19,6 +19,15 @@ export default function AddMedicalRecord() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [dateFilter, setDateFilter] = useState("");
+
+  // Filter appointments by selected date
+  const filteredAppointments = dateFilter
+    ? appointments.filter((apt) => {
+        const aptDate = new Date(apt.APPOINTMENT_DATE).toISOString().split("T")[0];
+        return aptDate === dateFilter;
+      })
+    : appointments;
 
   const [formData, setFormData] = useState({
     appointmentid: "",
@@ -36,9 +45,8 @@ export default function AddMedicalRecord() {
       const response = await fetch("http://localhost:5000/api/appointments");
       const data = await response.json();
       if (data.success) {
-        // Only show completed appointments that don't have a medical record yet
-        const completedAppointments = data.data.filter((apt: Appointment) => apt.STATUS === 'Completed');
-        setAppointments(completedAppointments);
+        // Show all appointments for medical record creation
+        setAppointments(data.data);
       }
     } catch (err) {
       console.error("Error fetching appointments:", err);
@@ -102,6 +110,27 @@ export default function AddMedicalRecord() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 gap-6">
+              {/* Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Filter by Date
+                </label>
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    setFormData({ ...formData, appointmentid: "" }); // Reset appointment selection
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {dateFilter && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    Showing {filteredAppointments.length} appointment(s) for {new Date(dateFilter).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
               {/* Appointment Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -115,9 +144,9 @@ export default function AddMedicalRecord() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select Appointment</option>
-                  {appointments.map((apt) => (
-                    <option key={apt.APPOINTMENTID} value={apt.APPOINTMENTID}>
-                      #{apt.APPOINTMENTID} - {apt.PATIENT_NAME} with Dr. {apt.DOCTOR_NAME} ({new Date(apt.APPOINTMENTDATE).toLocaleDateString()})
+                  {filteredAppointments.map((apt) => (
+                    <option key={apt.APPOINTMENT_ID} value={apt.APPOINTMENT_ID}>
+                      #{apt.APPOINTMENT_ID} - {apt.PATIENT_NAME} with Dr. {apt.DOCTOR_NAME} ({new Date(apt.APPOINTMENT_DATE).toLocaleDateString()})
                     </option>
                   ))}
                 </select>

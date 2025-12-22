@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 
 interface Appointment {
-  APPOINTMENTID: number;
+  APPOINTMENT_ID: number;
   PATIENT_IC: string;
   PATIENT_NAME: string;
   DOCTOR_NAME: string;
-  APPOINTMENTDATE: string;
-  APPOINTMENTTIME: string;
+  APPOINTMENT_DATE: string;
+  APPOINTMENT_TIME: string;
   STATUS: string;
 }
 
@@ -156,8 +156,8 @@ export default function EditMedicalRecord() {
                 >
                   <option value="">Select Appointment</option>
                   {appointments.map((apt) => (
-                    <option key={apt.APPOINTMENTID} value={apt.APPOINTMENTID}>
-                      #{apt.APPOINTMENTID} - {apt.PATIENT_NAME} with Dr. {apt.DOCTOR_NAME} ({new Date(apt.APPOINTMENTDATE).toLocaleDateString()})
+                    <option key={apt.APPOINTMENT_ID} value={apt.APPOINTMENT_ID}>
+                      #{apt.APPOINTMENT_ID} - {apt.PATIENT_NAME} with Dr. {apt.DOCTOR_NAME} ({new Date(apt.APPOINTMENT_DATE).toLocaleDateString()})
                     </option>
                   ))}
                 </select>

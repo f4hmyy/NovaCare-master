@@ -1800,22 +1800,25 @@ app.post('/api/medicalrecords', async (req, res) => {
   }
 
   try {
+    // Get next RECORDID
+    const idResult = await exec(`SELECT NVL(MAX(RECORDID), 0) + 1 as NEXT_ID FROM MEDICALRECORD`);
+    const nextId = idResult.rows[0].NEXT_ID;
+
     const result = await exec(`
       INSERT INTO MEDICALRECORD (RECORDID, APPOINTMENTID, VISITDATE, SYMPTOM, DIAGNOSIS)
-      VALUES (MEDICALRECORD_SEQ.NEXTVAL, :appointmentid, TO_DATE(:visitdate, 'YYYY-MM-DD'), :symptom, :diagnosis)
-      RETURNING RECORDID INTO :recordid
+      VALUES (:recordid, :appointmentid, TO_DATE(:visitdate, 'YYYY-MM-DD'), :symptom, :diagnosis)
     `, {
+      recordid: nextId,
       appointmentid: parseInt(appointmentid),
       visitdate,
       symptom: symptom || null,
-      diagnosis: diagnosis || null,
-      recordid: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      diagnosis: diagnosis || null
     });
 
     res.status(201).json({
       success: true,
       message: 'Medical record created successfully',
-      data: { recordId: result.outBinds.recordid[0] }
+      data: { recordId: nextId }
     });
   } catch (err) {
     console.error('Error creating medical record:', err);
