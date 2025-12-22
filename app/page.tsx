@@ -123,6 +123,26 @@ export default function Home() {
                 Manage staff roles and permissions
               </p>
             </Link>
+
+            <Link href="/medicalrecords" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">📋</span>
+              </div>
+              <h4 className="text-lg font-bold text-gray-900 mb-2">Medical Records</h4>
+              <p className="text-gray-600 text-sm">
+                Patient medical history and records
+              </p>
+            </Link>
+
+            <Link href="/sqlquery" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition border-2 border-indigo-200">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">⚡</span>
+              </div>
+              <h4 className="text-lg font-bold text-gray-900 mb-2">SQL Query</h4>
+              <p className="text-gray-600 text-sm">
+                Execute custom database queries
+              </p>
+            </Link>
           </div>
         </div>
 

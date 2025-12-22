@@ -45,9 +45,18 @@ export default function AddAppointment() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [patientSearch, setPatientSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  // Filter patients based on search
+  const filteredPatients = patients.filter((patient) => {
+    const searchLower = patientSearch.toLowerCase();
+    const fullName = `${patient.FIRST_NAME} ${patient.LAST_NAME}`.toLowerCase();
+    const ic = patient.PATIENT_IC.toLowerCase();
+    return fullName.includes(searchLower) || ic.includes(searchLower);
+  });
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -233,8 +242,17 @@ export default function AddAppointment() {
               <div>
                 <label htmlFor="patientIC" className="block text-sm font-medium text-gray-700 mb-2">
                   Patient <span className="text-red-500">*</span>
-                  <span className="text-xs text-gray-500 ml-2">({patients.length} available)</span>
+                  <span className="text-xs text-gray-500 ml-2">({filteredPatients.length} of {patients.length} shown)</span>
                 </label>
+                {/* Search Input */}
+                <input
+                  type="text"
+                  placeholder="Search by name or IC number..."
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  className="w-full px-4 py-2 mb-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {/* Dropdown with filtered results */}
                 <select
                   id="patientIC"
                   name="patientIC"
@@ -242,12 +260,13 @@ export default function AddAppointment() {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  size={5}
                 >
-                  <option value="">Select Patient ({patients.length} available)</option>
-                  {patients.length === 0 ? (
+                  <option value="">{filteredPatients.length === 0 ? 'No patients found' : 'Select Patient'}</option>
+                  {filteredPatients.length === 0 && patientSearch === "" ? (
                     <option disabled>No patients found - Please add a patient first</option>
                   ) : (
-                    patients.map((patient, index) => (
+                    filteredPatients.map((patient, index) => (
                       <option key={`patient-${patient.PATIENT_IC || index}`} value={patient.PATIENT_IC || ''}>
                         {patient.PATIENT_IC || 'N/A'} - {patient.FIRST_NAME || 'Unknown'} {patient.LAST_NAME || 'Unknown'}
                       </option>

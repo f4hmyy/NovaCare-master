@@ -4,60 +4,44 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-interface Patient {
-  PATIENTIC: string;
-  FIRSTNAME: string;
-  LASTNAME: string;
-}
-
-interface Doctor {
-  DOCTORID: number;
-  FIRSTNAME: string;
-  LASTNAME: string;
-  SPECIALIZATION: string;
+interface Appointment {
+  APPOINTMENTID: number;
+  PATIENT_IC: string;
+  PATIENT_NAME: string;
+  DOCTOR_NAME: string;
+  APPOINTMENTDATE: string;
+  APPOINTMENTTIME: string;
+  STATUS: string;
 }
 
 export default function AddMedicalRecord() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const [formData, setFormData] = useState({
-    patientic: "",
-    doctorid: "",
+    appointmentid: "",
     visitdate: "",
     symptom: "",
     diagnosis: "",
   });
 
   useEffect(() => {
-    fetchPatients();
-    fetchDoctors();
+    fetchAppointments();
   }, []);
 
-  const fetchPatients = async () => {
+  const fetchAppointments = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/patients");
+      const response = await fetch("http://localhost:5000/api/appointments");
       const data = await response.json();
       if (data.success) {
-        setPatients(data.data);
+        // Only show completed appointments that don't have a medical record yet
+        const completedAppointments = data.data.filter((apt: Appointment) => apt.STATUS === 'Completed');
+        setAppointments(completedAppointments);
       }
     } catch (err) {
-      console.error("Error fetching patients:", err);
-    }
-  };
-
-  const fetchDoctors = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/doctors");
-      const data = await response.json();
-      if (data.success) {
-        setDoctors(data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching doctors:", err);
+      console.error("Error fetching appointments:", err);
     }
   };
 
@@ -117,44 +101,23 @@ export default function AddMedicalRecord() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Patient Selection */}
+            <div className="grid grid-cols-1 gap-6">
+              {/* Appointment Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Patient <span className="text-red-500">*</span>
+                  Select Appointment <span className="text-red-500">*</span>
                 </label>
                 <select
-                  name="patientic"
+                  name="appointmentid"
                   required
-                  value={formData.patientic}
+                  value={formData.appointmentid}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">Select Patient</option>
-                  {patients.map((patient) => (
-                    <option key={patient.PATIENTIC} value={patient.PATIENTIC}>
-                      {patient.FIRSTNAME} {patient.LASTNAME} ({patient.PATIENTIC})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Doctor Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Doctor <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="doctorid"
-                  required
-                  value={formData.doctorid}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Select Doctor</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.DOCTORID} value={doctor.DOCTORID}>
-                      Dr. {doctor.FIRSTNAME} {doctor.LASTNAME} - {doctor.SPECIALIZATION}
+                  <option value="">Select Appointment</option>
+                  {appointments.map((apt) => (
+                    <option key={apt.APPOINTMENTID} value={apt.APPOINTMENTID}>
+                      #{apt.APPOINTMENTID} - {apt.PATIENT_NAME} with Dr. {apt.DOCTOR_NAME} ({new Date(apt.APPOINTMENTDATE).toLocaleDateString()})
                     </option>
                   ))}
                 </select>

@@ -732,10 +732,10 @@ app.post('/api/appointments', async (req, res) => {
       `SELECT COUNT(*) as CNT 
        FROM APPOINTMENTS 
        WHERE DOCTORID = :doctorId 
-       AND TRUNC(APPOINTMENTDATE) = TO_DATE(:date, 'YYYY-MM-DD')
-       AND APPOINTMENTTIME = :time
+       AND TRUNC(APPOINTMENTDATE) = TO_DATE(:appointmentDate, 'YYYY-MM-DD')
+       AND APPOINTMENTTIME = :appointmentTime
        AND STATUS != 'Cancelled'`,
-      { doctorId, date: appointmentDate, time: appointmentTime }
+      { doctorId, appointmentDate, appointmentTime }
     );
 
     if (conflict.rows[0].CNT > 0) {
@@ -749,24 +749,24 @@ app.post('/api/appointments', async (req, res) => {
       `INSERT INTO APPOINTMENTS 
         (STAFFID, PATIENTIC, DOCTORID, ROOMID, APPOINTMENTDATE, APPOINTMENTTIME, REASONTOVISIT, STATUS) 
        VALUES 
-        (:staffId, :patientIC, :doctorId, :roomId, TO_DATE(:date, 'YYYY-MM-DD'), :time, :reasonToVisit, 'Scheduled')
-       RETURNING APPOINTMENTID INTO :id`,
+        (:staffId, :patientIC, :doctorId, :roomId, TO_DATE(:appointmentDate, 'YYYY-MM-DD'), :appointmentTime, :reasonToVisit, 'Scheduled')
+       RETURNING APPOINTMENTID INTO :appointmentId`,
       {
         staffId: staffId || null,
         patientIC,
         doctorId,
         roomId: roomId || null,
-        date: appointmentDate,
-        time: appointmentTime,
+        appointmentDate: appointmentDate,
+        appointmentTime: appointmentTime,
         reasonToVisit: reasonToVisit || null,
-        id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+        appointmentId: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
       }
     );
 
     res.status(201).json({
       success: true,
       message: 'Appointment created successfully',
-      appointmentId: result.outBinds.id[0]
+      appointmentId: result.outBinds.appointmentId[0]
     });
   } catch (err) {
     console.error('Error creating appointment:', err);
@@ -1487,15 +1487,16 @@ app.get('/api/prescription', async (req, res) => {
         p.RECORDID,
         p.INSTRUCTION,
         r.VISITDATE,
-        r.PATIENTIC,
+        a.PATIENTIC,
         pt.FIRSTNAME || ' ' || pt.LASTNAME as PATIENT_NAME,
-        r.DOCTORID,
+        a.DOCTORID,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
         r.DIAGNOSIS
       FROM PRESCRIPTION p
       JOIN MEDICALRECORD r ON p.RECORDID = r.RECORDID
-      JOIN PATIENTS pt ON r.PATIENTIC = pt.PATIENTIC
-      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      JOIN APPOINTMENTS a ON r.APPOINTMENTID = a.APPOINTMENTID
+      JOIN PATIENTS pt ON a.PATIENTIC = pt.PATIENTIC
+      JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
       ORDER BY r.VISITDATE DESC
     `);
     
@@ -1524,16 +1525,17 @@ app.get('/api/prescription/:id', async (req, res) => {
         p.RECORDID,
         p.INSTRUCTION,
         r.VISITDATE,
-        r.PATIENTIC,
+        a.PATIENTIC,
         pt.FIRSTNAME || ' ' || pt.LASTNAME as PATIENT_NAME,
-        r.DOCTORID,
+        a.DOCTORID,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
         r.DIAGNOSIS,
         r.SYMPTOM
       FROM PRESCRIPTION p
       JOIN MEDICALRECORD r ON p.RECORDID = r.RECORDID
-      JOIN PATIENTS pt ON r.PATIENTIC = pt.PATIENTIC
-      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      JOIN APPOINTMENTS a ON r.APPOINTMENTID = a.APPOINTMENTID
+      JOIN PATIENTS pt ON a.PATIENTIC = pt.PATIENTIC
+      JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
       WHERE p.PRESCRIPTIONID = :id`,
       { id }
     );
@@ -1715,15 +1717,17 @@ app.get('/api/medicalrecords', async (req, res) => {
       SELECT 
         r.RECORDID,
         r.VISITDATE,
-        r.PATIENTIC,
+        a.PATIENTIC,
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
-        r.DOCTORID,
+        a.DOCTORID,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
         r.SYMPTOM,
-        r.DIAGNOSIS
+        r.DIAGNOSIS,
+        r.APPOINTMENTID
       FROM MEDICALRECORD r
-      JOIN PATIENTS p ON r.PATIENTIC = p.PATIENTIC
-      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      JOIN APPOINTMENTS a ON r.APPOINTMENTID = a.APPOINTMENTID
+      JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
+      JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
       ORDER BY r.VISITDATE DESC
     `);
     
@@ -1749,15 +1753,17 @@ app.get('/api/medicalrecords/:id', async (req, res) => {
       SELECT 
         r.RECORDID,
         r.VISITDATE,
-        r.PATIENTIC,
+        a.PATIENTIC,
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
-        r.DOCTORID,
+        a.DOCTORID,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
         r.SYMPTOM,
-        r.DIAGNOSIS
+        r.DIAGNOSIS,
+        r.APPOINTMENTID
       FROM MEDICALRECORD r
-      JOIN PATIENTS p ON r.PATIENTIC = p.PATIENTIC
-      JOIN DOCTORS d ON r.DOCTORID = d.DOCTORID
+      JOIN APPOINTMENTS a ON r.APPOINTMENTID = a.APPOINTMENTID
+      JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
+      JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
       WHERE r.RECORDID = :id
     `, { id });
     
@@ -1784,23 +1790,22 @@ app.get('/api/medicalrecords/:id', async (req, res) => {
 
 // Create new medical record
 app.post('/api/medicalrecords', async (req, res) => {
-  const { patientic, doctorid, visitdate, symptom, diagnosis } = req.body;
+  const { appointmentid, visitdate, symptom, diagnosis } = req.body;
 
-  if (!patientic || !doctorid || !visitdate) {
+  if (!appointmentid || !visitdate) {
     return res.status(400).json({
       success: false,
-      message: 'Patient IC, Doctor ID, and Visit Date are required'
+      message: 'Appointment ID and Visit Date are required'
     });
   }
 
   try {
     const result = await exec(`
-      INSERT INTO MEDICALRECORD (RECORDID, PATIENTIC, DOCTORID, VISITDATE, SYMPTOM, DIAGNOSIS)
-      VALUES (MEDICALRECORD_SEQ.NEXTVAL, :patientic, :doctorid, TO_DATE(:visitdate, 'YYYY-MM-DD'), :symptom, :diagnosis)
+      INSERT INTO MEDICALRECORD (RECORDID, APPOINTMENTID, VISITDATE, SYMPTOM, DIAGNOSIS)
+      VALUES (MEDICALRECORD_SEQ.NEXTVAL, :appointmentid, TO_DATE(:visitdate, 'YYYY-MM-DD'), :symptom, :diagnosis)
       RETURNING RECORDID INTO :recordid
     `, {
-      patientic,
-      doctorid: parseInt(doctorid),
+      appointmentid: parseInt(appointmentid),
       visitdate,
       symptom: symptom || null,
       diagnosis: diagnosis || null,
@@ -1825,27 +1830,25 @@ app.post('/api/medicalrecords', async (req, res) => {
 // Update medical record
 app.put('/api/medicalrecords/:id', async (req, res) => {
   const { id } = req.params;
-  const { patientic, doctorid, visitdate, symptom, diagnosis } = req.body;
+  const { appointmentid, visitdate, symptom, diagnosis } = req.body;
 
-  if (!patientic || !doctorid || !visitdate) {
+  if (!appointmentid || !visitdate) {
     return res.status(400).json({
       success: false,
-      message: 'Patient IC, Doctor ID, and Visit Date are required'
+      message: 'Appointment ID and Visit Date are required'
     });
   }
 
   try {
     const result = await exec(`
       UPDATE MEDICALRECORD
-      SET PATIENTIC = :patientic,
-          DOCTORID = :doctorid,
+      SET APPOINTMENTID = :appointmentid,
           VISITDATE = TO_DATE(:visitdate, 'YYYY-MM-DD'),
           SYMPTOM = :symptom,
           DIAGNOSIS = :diagnosis
       WHERE RECORDID = :id
     `, {
-      patientic,
-      doctorid: parseInt(doctorid),
+      appointmentid: parseInt(appointmentid),
       visitdate,
       symptom: symptom || null,
       diagnosis: diagnosis || null,
@@ -2181,6 +2184,54 @@ process.on('SIGINT', async () => {
   } catch (err) {
     console.error('Error during shutdown:', err);
     process.exit(1);
+  }
+});
+
+// ----------------- SQL QUERY CONSOLE -----------------
+// Execute custom SQL query (for admin/development use)
+app.post('/api/query', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Query is required'
+    });
+  }
+
+  // Basic security: prevent certain dangerous operations
+  const dangerousKeywords = ['DROP DATABASE', 'DROP USER', 'CREATE USER', 'ALTER USER', 'GRANT', 'REVOKE'];
+  const upperQuery = query.toUpperCase();
+  
+  for (const keyword of dangerousKeywords) {
+    if (upperQuery.includes(keyword)) {
+      return res.status(403).json({
+        success: false,
+        message: `Query contains forbidden keyword: ${keyword}`
+      });
+    }
+  }
+
+  try {
+    const result = await exec(query);
+    
+    // Extract column names from the result metadata
+    const columns = result.metaData ? result.metaData.map(col => col.name) : [];
+    
+    res.json({
+      success: true,
+      columns: columns,
+      rows: result.rows || [],
+      rowCount: result.rows ? result.rows.length : 0,
+      message: 'Query executed successfully'
+    });
+  } catch (err) {
+    console.error('Error executing query:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to execute query',
+      error: err.message
+    });
   }
 });
 

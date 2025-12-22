@@ -12,6 +12,7 @@ interface MedicalRecord {
   DOCTOR_NAME: string;
   SYMPTOM: string;
   DIAGNOSIS: string;
+  APPOINTMENTID: number;
 }
 
 export default function MedicalRecords() {
