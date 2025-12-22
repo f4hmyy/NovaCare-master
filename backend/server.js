@@ -927,6 +927,535 @@ app.delete('/api/appointments/:id', async (req, res) => {
   }
 });
 
+// ----------------- ROLES ROUTES -----------------
+// Get all roles
+app.get('/api/roles', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        ROLEID as ROLE_ID,
+        ROLENAME as ROLE_NAME,
+        ROLEDESCRIPTION as ROLE_DESCRIPTION
+      FROM ROLES
+      ORDER BY ROLEID
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching roles:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch roles',
+      error: err.message
+    });
+  }
+});
+
+// Add new role
+app.post('/api/roles', async (req, res) => {
+  const { roleName, roleDescription } = req.body;
+
+  if (!roleName) {
+    return res.status(400).json({
+      success: false,
+      message: 'Role name is required'
+    });
+  }
+
+  try {
+    const result = await exec(
+      `INSERT INTO ROLES (ROLENAME, ROLEDESCRIPTION)
+       VALUES (:roleName, :roleDescription)
+       RETURNING ROLEID INTO :id`,
+      {
+        roleName,
+        roleDescription: roleDescription || null,
+        id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Role added successfully',
+      roleId: result.outBinds.id[0]
+    });
+  } catch (err) {
+    console.error('Error adding role:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add role',
+      error: err.message
+    });
+  }
+});
+
+// Get single role
+app.get('/api/roles/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `SELECT
+        ROLEID as ROLE_ID,
+        ROLENAME as ROLE_NAME,
+        ROLEDESCRIPTION as ROLE_DESCRIPTION
+       FROM ROLES
+       WHERE ROLEID = :id`,
+      { id }
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Role not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error fetching role:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch role',
+      error: err.message
+    });
+  }
+});
+
+// Update role
+app.put('/api/roles/:id', async (req, res) => {
+  const { id } = req.params;
+  const { roleName, roleDescription } = req.body;
+
+  try {
+    await exec(
+      `UPDATE ROLES
+       SET ROLENAME = :roleName,
+           ROLEDESCRIPTION = :roleDescription
+       WHERE ROLEID = :id`,
+      { id, roleName, roleDescription }
+    );
+
+    res.json({
+      success: true,
+      message: 'Role updated successfully'
+    });
+  } catch (err) {
+    console.error('Error updating role:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update role',
+      error: err.message
+    });
+  }
+});
+
+// Delete role
+app.delete('/api/roles/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `DELETE FROM ROLES WHERE ROLEID = :id`,
+      { id }
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Role not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Role deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting role:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete role',
+      error: err.message
+    });
+  }
+});
+
+// ----------------- ROOMS ROUTES -----------------
+// Get all rooms
+app.get('/api/rooms', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        ROOMID as ROOM_ID,
+        ROOMTYPE as ROOM_TYPE,
+        AVAILABILITYSTATUS as AVAILABILITY_STATUS
+      FROM ROOMS
+      ORDER BY ROOMID
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching rooms:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch rooms',
+      error: err.message
+    });
+  }
+});
+
+// Add new room
+app.post('/api/rooms', async (req, res) => {
+  const { roomType, availabilityStatus } = req.body;
+
+  if (!roomType) {
+    return res.status(400).json({
+      success: false,
+      message: 'Room type is required'
+    });
+  }
+
+  try {
+    const result = await exec(
+      `INSERT INTO ROOMS (ROOMTYPE, AVAILABILITYSTATUS)
+       VALUES (:roomType, :availabilityStatus)
+       RETURNING ROOMID INTO :id`,
+      {
+        roomType,
+        availabilityStatus: availabilityStatus || 'Available',
+        id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Room added successfully',
+      roomId: result.outBinds.id[0]
+    });
+  } catch (err) {
+    console.error('Error adding room:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add room',
+      error: err.message
+    });
+  }
+});
+
+// Get single room
+app.get('/api/rooms/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `SELECT
+        ROOMID as ROOM_ID,
+        ROOMTYPE as ROOM_TYPE,
+        AVAILABILITYSTATUS as AVAILABILITY_STATUS
+       FROM ROOMS
+       WHERE ROOMID = :id`,
+      { id }
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Room not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error fetching room:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch room',
+      error: err.message
+    });
+  }
+});
+
+// Update room
+app.put('/api/rooms/:id', async (req, res) => {
+  const { id } = req.params;
+  const { roomType, availabilityStatus } = req.body;
+
+  try {
+    await exec(
+      `UPDATE ROOMS
+       SET ROOMTYPE = :roomType,
+           AVAILABILITYSTATUS = :availabilityStatus
+       WHERE ROOMID = :id`,
+      { id, roomType, availabilityStatus }
+    );
+
+    res.json({
+      success: true,
+      message: 'Room updated successfully'
+    });
+  } catch (err) {
+    console.error('Error updating room:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update room',
+      error: err.message
+    });
+  }
+});
+
+// Delete room
+app.delete('/api/rooms/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `DELETE FROM ROOMS WHERE ROOMID = :id`,
+      { id }
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Room not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Room deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting room:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete room',
+      error: err.message
+    });
+  }
+});
+
+// ----------------- STAFF ROUTES -----------------
+// Get all staff
+app.get('/api/staff', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        s.STAFFID as STAFF_ID,
+        s.FIRSTNAME as FIRST_NAME,
+        s.LASTNAME as LAST_NAME,
+        s.ROLEID as ROLE_ID,
+        r.ROLENAME as ROLE_NAME,
+        s.PHONENUM as PHONE_NUM,
+        s.EMAIL,
+        s.HIREDATE as HIRE_DATE,
+        s.SHIFT
+      FROM STAFF s
+      LEFT JOIN ROLES r ON s.ROLEID = r.ROLEID
+      ORDER BY s.STAFFID DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching staff:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch staff',
+      error: err.message
+    });
+  }
+});
+
+// Add new staff
+app.post('/api/staff', async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    roleId,
+    phoneNum,
+    email,
+    hireDate,
+    shift
+  } = req.body;
+
+  if (!firstName || !lastName || !roleId) {
+    return res.status(400).json({
+      success: false,
+      message: 'First name, last name, and role ID are required'
+    });
+  }
+
+  try {
+    const result = await exec(
+      `INSERT INTO STAFF
+        (FIRSTNAME, LASTNAME, ROLEID, PHONENUM, EMAIL, HIREDATE, SHIFT)
+       VALUES
+        (:firstName, :lastName, :roleId, :phoneNum, :email, TO_DATE(:hireDate, 'YYYY-MM-DD'), :shift)
+       RETURNING STAFFID INTO :id`,
+      {
+        firstName,
+        lastName,
+        roleId,
+        phoneNum: phoneNum || null,
+        email: email || null,
+        hireDate: hireDate || null,
+        shift: shift || null,
+        id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Staff member added successfully',
+      staffId: result.outBinds.id[0]
+    });
+  } catch (err) {
+    console.error('Error adding staff:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add staff member',
+      error: err.message
+    });
+  }
+});
+
+// Get single staff
+app.get('/api/staff/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `SELECT
+        STAFFID as STAFF_ID,
+        FIRSTNAME as FIRST_NAME,
+        LASTNAME as LAST_NAME,
+        ROLEID as ROLE_ID,
+        PHONENUM as PHONE_NUM,
+        EMAIL,
+        HIREDATE as HIRE_DATE,
+        SHIFT
+       FROM STAFF
+       WHERE STAFFID = :id`,
+      { id }
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Staff member not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error fetching staff:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch staff member',
+      error: err.message
+    });
+  }
+});
+
+// Update staff
+app.put('/api/staff/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    firstName,
+    lastName,
+    roleId,
+    phoneNum,
+    email,
+    hireDate,
+    shift
+  } = req.body;
+
+  try {
+    await exec(
+      `UPDATE STAFF
+       SET FIRSTNAME = :firstName,
+           LASTNAME = :lastName,
+           ROLEID = :roleId,
+           PHONENUM = :phoneNum,
+           EMAIL = :email,
+           HIREDATE = TO_DATE(:hireDate, 'YYYY-MM-DD'),
+           SHIFT = :shift
+       WHERE STAFFID = :id`,
+      {
+        id,
+        firstName,
+        lastName,
+        roleId,
+        phoneNum,
+        email,
+        hireDate,
+        shift
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Staff member updated successfully'
+    });
+  } catch (err) {
+    console.error('Error updating staff:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update staff member',
+      error: err.message
+    });
+  }
+});
+
+// Delete staff
+app.delete('/api/staff/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await exec(
+      `DELETE FROM STAFF WHERE STAFFID = :id`,
+      { id }
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Staff member not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Staff member deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting staff:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete staff member',
+      error: err.message
+    });
+  }
+});
+
 // ----------------- MEDICINE ROUTES -----------------
 // Get all medicines
 app.get('/api/medicine', async (req, res) => {
