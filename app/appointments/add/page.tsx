@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Patient {
   PATIENT_IC: string;
@@ -13,33 +14,66 @@ interface Doctor {
   DOCTOR_ID: number;
   FIRST_NAME: string;
   LAST_NAME: string;
+  SPECIALIZATION: string;
+}
+
+interface Staff {
+  STAFF_ID: number;
+  FIRST_NAME: string;
+  LAST_NAME: string;
+  ROLE_NAME: string;
+}
+
+interface Room {
+  ROOM_ID: number;
+  ROOM_TYPE: string;
+  AVAILABILITY_STATUS: string;
 }
 
 export default function AddAppointment() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
+    staffId: "",
     patientIC: "",
     doctorId: "",
+    roomId: "",
     appointmentDate: "",
     appointmentTime: "",
-    reason: "",
-    notes: "",
+    reasonToVisit: "",
   });
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   useEffect(() => {
-    fetchPatients();
-    fetchDoctors();
+    const fetchAllData = async () => {
+      setDataLoading(true);
+      await Promise.all([
+        fetchPatients(),
+        fetchDoctors(),
+        fetchStaff(),
+        fetchRooms()
+      ]);
+      setDataLoading(false);
+    };
+    fetchAllData();
   }, []);
 
   const fetchPatients = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/patients");
       const data = await response.json();
-      if (data.success) {
+      console.log("Patients data:", data);
+      if (data.success && Array.isArray(data.data)) {
+        console.log("First patient sample:", data.data[0]);
+        console.log("Patient keys:", data.data[0] ? Object.keys(data.data[0]) : "No patients");
         setPatients(data.data);
+      } else {
+        console.error("Invalid patients data structure:", data);
       }
     } catch (error) {
       console.error("Error fetching patients:", error);
@@ -50,11 +84,40 @@ export default function AddAppointment() {
     try {
       const response = await fetch("http://localhost:5000/api/doctors");
       const data = await response.json();
+      console.log("Doctors data:", data);
       if (data.success) {
         setDoctors(data.data);
       }
     } catch (error) {
       console.error("Error fetching doctors:", error);
+    }
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/staff");
+      const data = await response.json();
+      console.log("Staff data:", data);
+      if (data.success) {
+        setStaff(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/rooms");
+      const data = await response.json();
+      console.log("Rooms data:", data);
+      if (data.success) {
+        const availableRooms = data.data.filter((room: Room) => room.AVAILABILITY_STATUS === 'Available');
+        console.log("Available rooms:", availableRooms);
+        setRooms(availableRooms);
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
     }
   };
 
@@ -83,14 +146,7 @@ export default function AddAppointment() {
 
       if (response.ok) {
         setMessage({ type: "success", text: "Appointment booked successfully!" });
-        setFormData({
-          patientIC: "",
-          doctorId: "",
-          appointmentDate: "",
-          appointmentTime: "",
-          reason: "",
-          notes: "",
-        });
+        setTimeout(() => router.push("/appointments"), 2000);
       } else {
         setMessage({ type: "error", text: data.message || "Failed to book appointment" });
       }
@@ -163,6 +219,13 @@ export default function AddAppointment() {
             </div>
           )}
 
+          {/* Data Loading State */}
+          {dataLoading && (
+            <div className="mb-6 p-4 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg">
+              Loading form data... (Patients: {patients.length}, Doctors: {doctors.length}, Staff: {staff.length}, Rooms: {rooms.length})
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -170,6 +233,7 @@ export default function AddAppointment() {
               <div>
                 <label htmlFor="patientIC" className="block text-sm font-medium text-gray-700 mb-2">
                   Patient <span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-500 ml-2">({patients.length} available)</span>
                 </label>
                 <select
                   id="patientIC"
@@ -179,12 +243,16 @@ export default function AddAppointment() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">Select Patient</option>
-                  {patients.map((patient) => (
-                    <option key={patient.PATIENT_IC} value={patient.PATIENT_IC}>
-                      {patient.FIRST_NAME} {patient.LAST_NAME} (IC: {patient.PATIENT_IC})
-                    </option>
-                  ))}
+                  <option value="">Select Patient ({patients.length} available)</option>
+                  {patients.length === 0 ? (
+                    <option disabled>No patients found - Please add a patient first</option>
+                  ) : (
+                    patients.map((patient, index) => (
+                      <option key={`patient-${patient.PATIENT_IC || index}`} value={patient.PATIENT_IC || ''}>
+                        {patient.PATIENT_IC || 'N/A'} - {patient.FIRST_NAME || 'Unknown'} {patient.LAST_NAME || 'Unknown'}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <Link
                   href="/patients/add"
@@ -198,6 +266,7 @@ export default function AddAppointment() {
               <div>
                 <label htmlFor="doctorId" className="block text-sm font-medium text-gray-700 mb-2">
                   Doctor <span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-500 ml-2">({doctors.length} available)</span>
                 </label>
                 <select
                   id="doctorId"
@@ -207,12 +276,68 @@ export default function AddAppointment() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">Select Doctor</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.DOCTOR_ID} value={doctor.DOCTOR_ID}>
-                      Dr. {doctor.FIRST_NAME} {doctor.LAST_NAME}
-                    </option>
-                  ))}
+                  <option value="">Select Doctor ({doctors.length} available)</option>
+                  {doctors.length === 0 ? (
+                    <option disabled>No doctors found</option>
+                  ) : (
+                    doctors.map((doctor, index) => (
+                      <option key={`doctor-${doctor.DOCTOR_ID || index}`} value={doctor.DOCTOR_ID || ''}>
+                        Dr. {doctor.FIRST_NAME || 'Unknown'} {doctor.LAST_NAME || 'Unknown'} - {doctor.SPECIALIZATION || 'N/A'}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              {/* Staff Selection */}
+              <div>
+                <label htmlFor="staffId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Assigned Staff
+                  <span className="text-xs text-gray-500 ml-2">({staff.length} available)</span>
+                </label>
+                <select
+                  id="staffId"
+                  name="staffId"
+                  value={formData.staffId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Select Staff - {staff.length} available (Optional)</option>
+                  {staff.length === 0 ? (
+                    <option disabled>No staff members found</option>
+                  ) : (
+                    staff.map((s, index) => (
+                      <option key={`staff-${s.STAFF_ID || index}`} value={s.STAFF_ID || ''}>
+                        {s.FIRST_NAME || 'Unknown'} {s.LAST_NAME || 'Unknown'} - {s.ROLE_NAME || 'N/A'}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              {/* Room Selection */}
+              <div>
+                <label htmlFor="roomId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Room
+                  <span className="text-xs text-gray-500 ml-2">({rooms.length} available)</span>
+                </label>
+                <select
+                  id="roomId"
+                  name="roomId"
+                  value={formData.roomId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Select Room - {rooms.length} available (Optional)</option>
+                  {rooms.length === 0 ? (
+                    <option disabled>No available rooms</option>
+                  ) : (
+                    rooms.map((room, index) => (
+                      <option key={`room-${room.ROOM_ID || index}`} value={room.ROOM_ID || ''}>
+                        Room {room.ROOM_ID || 'N/A'} - {room.ROOM_TYPE || 'Unknown'} ({room.AVAILABILITY_STATUS || 'Unknown'})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -247,8 +372,8 @@ export default function AddAppointment() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select Time</option>
-                  {timeSlots.map((time) => (
-                    <option key={time} value={time}>
+                  {timeSlots.map((time, index) => (
+                    <option key={`time-${index}`} value={time}>
                       {time}
                     </option>
                   ))}
@@ -256,35 +381,19 @@ export default function AddAppointment() {
               </div>
             </div>
 
-            {/* Reason */}
+            {/* Reason to Visit */}
             <div>
-              <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="reasonToVisit" className="block text-sm font-medium text-gray-700 mb-2">
                 Reason for Visit
               </label>
-              <input
-                type="text"
-                id="reason"
-                name="reason"
-                value={formData.reason}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="e.g., Regular checkup, Follow-up visit"
-              />
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-                Additional Notes
-              </label>
               <textarea
-                id="notes"
-                name="notes"
-                value={formData.notes}
+                id="reasonToVisit"
+                name="reasonToVisit"
+                value={formData.reasonToVisit}
                 onChange={handleChange}
-                rows={4}
+                rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Any additional information..."
+                placeholder="e.g., Regular checkup, Follow-up visit, Symptoms..."
               />
             </div>
 

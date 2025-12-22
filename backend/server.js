@@ -196,16 +196,17 @@ app.get('/api/doctors', async (req, res) => {
   try {
     const result = await exec(`
       SELECT 
-        DOCTORID as DOCTOR_ID, 
-        FIRSTNAME as FIRST_NAME, 
-        LASTNAME as LAST_NAME, 
-        SPECIALIZATIONID as SPECIALIZATION, 
-        EMAIL, 
-        PHONENUM as PHONE, 
-        LICENSENUM as LICENSE_NUMBER,
-        STATUS
-      FROM DOCTORS 
-      ORDER BY DOCTORID DESC
+        d.DOCTORID as DOCTOR_ID, 
+        d.FIRSTNAME as FIRST_NAME, 
+        d.LASTNAME as LAST_NAME, 
+        s.SPECIALIZATIONTYPE as SPECIALIZATION, 
+        d.EMAIL, 
+        d.PHONENUM as PHONE, 
+        d.LICENSENUM as LICENSE_NUMBER,
+        d.STATUS
+      FROM DOCTORS d
+      LEFT JOIN SPECIALIZATION s ON d.SPECIALIZATIONID = s.SPECIALIZATIONID
+      ORDER BY d.DOCTORID DESC
     `);
     
     res.json({
@@ -625,19 +626,24 @@ app.get('/api/appointments', async (req, res) => {
     const result = await exec(`
       SELECT 
         a.APPOINTMENTID as APPOINTMENT_ID,
+        a.STAFFID as STAFF_ID,
         a.PATIENTIC as PATIENT_IC,
         a.DOCTORID as DOCTOR_ID,
+        a.ROOMID as ROOM_ID,
         a.APPOINTMENTDATE as APPOINTMENT_DATE,
         a.APPOINTMENTTIME as APPOINTMENT_TIME,
+        a.REASONTOVISIT as REASON_TO_VISIT,
         a.STATUS,
-        a.REASON,
-        a.NOTES,
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        s.FIRSTNAME || ' ' || s.LASTNAME as STAFF_NAME,
+        r.ROOMTYPE as ROOM_TYPE,
         p.PHONENUM as PATIENT_PHONE
       FROM APPOINTMENTS a
       JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
       JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
+      LEFT JOIN STAFF s ON a.STAFFID = s.STAFFID
+      LEFT JOIN ROOMS r ON a.ROOMID = r.ROOMID
       ORDER BY a.APPOINTMENTDATE DESC, a.APPOINTMENTTIME DESC
     `);
     
@@ -663,19 +669,24 @@ app.get('/api/appointments/date/:date', async (req, res) => {
     const result = await exec(
       `SELECT 
         a.APPOINTMENTID as APPOINTMENT_ID,
+        a.STAFFID as STAFF_ID,
         a.PATIENTIC as PATIENT_IC,
         a.DOCTORID as DOCTOR_ID,
+        a.ROOMID as ROOM_ID,
         a.APPOINTMENTDATE as APPOINTMENT_DATE,
         a.APPOINTMENTTIME as APPOINTMENT_TIME,
+        a.REASONTOVISIT as REASON_TO_VISIT,
         a.STATUS,
-        a.REASON,
-        a.NOTES,
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        s.FIRSTNAME || ' ' || s.LASTNAME as STAFF_NAME,
+        r.ROOMTYPE as ROOM_TYPE,
         p.PHONENUM as PATIENT_PHONE
       FROM APPOINTMENTS a
       JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
       JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
+      LEFT JOIN STAFF s ON a.STAFFID = s.STAFFID
+      LEFT JOIN ROOMS r ON a.ROOMID = r.ROOMID
       WHERE TRUNC(a.APPOINTMENTDATE) = TO_DATE(:date, 'YYYY-MM-DD')
       ORDER BY a.APPOINTMENTTIME`,
       { date }
@@ -698,12 +709,13 @@ app.get('/api/appointments/date/:date', async (req, res) => {
 // Add new appointment
 app.post('/api/appointments', async (req, res) => {
   const { 
+    staffId,
     patientIC, 
     doctorId, 
+    roomId,
     appointmentDate, 
     appointmentTime, 
-    reason,
-    notes
+    reasonToVisit
   } = req.body;
 
   // Validation
@@ -735,17 +747,18 @@ app.post('/api/appointments', async (req, res) => {
 
     const result = await exec(
       `INSERT INTO APPOINTMENTS 
-        (PATIENTIC, DOCTORID, APPOINTMENTDATE, APPOINTMENTTIME, STATUS, REASON, NOTES) 
+        (STAFFID, PATIENTIC, DOCTORID, ROOMID, APPOINTMENTDATE, APPOINTMENTTIME, REASONTOVISIT, STATUS) 
        VALUES 
-        (:patientIC, :doctorId, TO_DATE(:date, 'YYYY-MM-DD'), :time, 'Scheduled', :reason, :notes)
+        (:staffId, :patientIC, :doctorId, :roomId, TO_DATE(:date, 'YYYY-MM-DD'), :time, :reasonToVisit, 'Scheduled')
        RETURNING APPOINTMENTID INTO :id`,
       {
+        staffId: staffId || null,
         patientIC,
         doctorId,
+        roomId: roomId || null,
         date: appointmentDate,
         time: appointmentTime,
-        reason: reason || null,
-        notes: notes || null,
+        reasonToVisit: reasonToVisit || null,
         id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
       }
     );
@@ -773,20 +786,25 @@ app.get('/api/appointments/:id', async (req, res) => {
     const result = await exec(
       `SELECT 
         a.APPOINTMENTID as APPOINTMENT_ID,
+        a.STAFFID as STAFF_ID,
         a.PATIENTIC as PATIENT_IC,
         a.DOCTORID as DOCTOR_ID,
+        a.ROOMID as ROOM_ID,
         a.APPOINTMENTDATE as APPOINTMENT_DATE,
         a.APPOINTMENTTIME as APPOINTMENT_TIME,
+        a.REASONTOVISIT as REASON_TO_VISIT,
         a.STATUS,
-        a.REASON,
-        a.NOTES,
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+        s.FIRSTNAME || ' ' || s.LASTNAME as STAFF_NAME,
+        r.ROOMTYPE as ROOM_TYPE,
         p.PHONENUM as PATIENT_PHONE,
         p.EMAIL as PATIENT_EMAIL
       FROM APPOINTMENTS a
       JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
       JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
+      LEFT JOIN STAFF s ON a.STAFFID = s.STAFFID
+      LEFT JOIN ROOMS r ON a.ROOMID = r.ROOMID
       WHERE a.APPOINTMENTID = :id`,
       { id }
     );
@@ -850,35 +868,38 @@ app.patch('/api/appointments/:id/status', async (req, res) => {
 app.put('/api/appointments/:id', async (req, res) => {
   const { id } = req.params;
   const { 
+    staffId,
     patientIC, 
     doctorId, 
+    roomId,
     appointmentDate, 
     appointmentTime, 
     status,
-    reason,
-    notes
+    reasonToVisit
   } = req.body;
 
   try {
     await exec(
       `UPDATE APPOINTMENTS 
-       SET PATIENTIC = :patientIC,
+       SET STAFFID = :staffId,
+           PATIENTIC = :patientIC,
            DOCTORID = :doctorId,
+           ROOMID = :roomId,
            APPOINTMENTDATE = TO_DATE(:date, 'YYYY-MM-DD'),
            APPOINTMENTTIME = :time,
            STATUS = :status,
-           REASON = :reason,
-           NOTES = :notes
+           REASONTOVISIT = :reasonToVisit
        WHERE APPOINTMENTID = :id`,
       {
         id,
+        staffId: staffId || null,
         patientIC,
         doctorId,
+        roomId: roomId || null,
         date: appointmentDate,
         time: appointmentTime,
         status,
-        reason,
-        notes
+        reasonToVisit: reasonToVisit || null
       }
     );
 

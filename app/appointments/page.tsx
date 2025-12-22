@@ -5,15 +5,18 @@ import { useState, useEffect } from "react";
 
 interface Appointment {
   APPOINTMENT_ID: number;
-  PATIENT_ID: number;
+  STAFF_ID: number;
+  PATIENT_IC: string;
   DOCTOR_ID: number;
+  ROOM_ID: number;
   APPOINTMENT_DATE: string;
   APPOINTMENT_TIME: string;
+  REASON_TO_VISIT: string;
   STATUS: string;
-  REASON: string;
-  NOTES: string;
   PATIENT_NAME: string;
   DOCTOR_NAME: string;
+  STAFF_NAME: string;
+  ROOM_TYPE: string;
   PATIENT_PHONE: string;
 }
 
@@ -237,6 +240,12 @@ export default function Appointments() {
                       Doctor
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Room
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Staff
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Reason
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -263,8 +272,14 @@ export default function Appointments() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         Dr. {appointment.DOCTOR_NAME}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {appointment.ROOM_TYPE || "N/A"} {appointment.ROOM_ID && `#${appointment.ROOM_ID}`}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {appointment.STAFF_NAME || "Not assigned"}
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {appointment.REASON || "General Checkup"}
+                        {appointment.REASON_TO_VISIT || "General Checkup"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
