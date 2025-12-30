@@ -6,12 +6,14 @@ import { useState, useEffect } from "react";
 interface Specialization {
   ID: number;
   NAME: string;
+  DESCRIPTION: string | null;
 }
 
 export default function Specializations() {
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [loading, setLoading] = useState(true);
   const [newSpecName, setNewSpecName] = useState("");
+  const [newSpecDesc, setNewSpecDesc] = useState("");
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,7 +49,7 @@ export default function Specializations() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name: newSpecName }),
+        body: JSON.stringify({ name: newSpecName, description: newSpecDesc }),
       });
 
       const data = await response.json();
@@ -55,6 +57,7 @@ export default function Specializations() {
       if (response.ok) {
         setMessage({ type: "success", text: "Specialization added successfully!" });
         setNewSpecName("");
+        setNewSpecDesc("");
         fetchSpecializations();
       } else {
         setMessage({ type: "error", text: data.message || "Failed to add specialization" });
@@ -138,22 +141,31 @@ export default function Specializations() {
 
           {/* Add Form */}
           <form onSubmit={handleAdd} className="mb-8">
-            <div className="flex gap-4">
-              <input
-                type="text"
-                value={newSpecName}
-                onChange={(e) => setNewSpecName(e.target.value)}
-                placeholder="Enter specialization name (e.g., Cardiology)"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
+            <div className="space-y-3">
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={newSpecName}
+                  onChange={(e) => setNewSpecName(e.target.value)}
+                  placeholder="Enter specialization name (e.g., Cardiology)"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={adding}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
+                >
+                  {adding ? "Adding..." : "Add"}
+                </button>
+              </div>
+              <textarea
+                value={newSpecDesc}
+                onChange={(e) => setNewSpecDesc(e.target.value)}
+                placeholder="Enter description (optional) - e.g., Specialist in heart and cardiovascular conditions"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                rows={2}
               />
-              <button
-                type="submit"
-                disabled={adding}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
-              >
-                {adding ? "Adding..." : "Add"}
-              </button>
             </div>
           </form>
 
@@ -201,9 +213,14 @@ export default function Specializations() {
                   key={spec.ID}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
                 >
-                  <div>
-                    <span className="font-medium text-gray-900">{spec.NAME}</span>
-                    <span className="ml-3 text-sm text-gray-500">ID: {spec.ID}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-gray-900">{spec.NAME}</span>
+                      <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded">ID: {spec.ID}</span>
+                    </div>
+                    {spec.DESCRIPTION && (
+                      <p className="text-sm text-gray-500 mt-1">{spec.DESCRIPTION}</p>
+                    )}
                   </div>
                   <button
                     onClick={() => handleDelete(spec.ID)}

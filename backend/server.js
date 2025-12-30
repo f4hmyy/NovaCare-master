@@ -15,8 +15,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Serve static files for payment proofs
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// // Serve static files for payment proofs
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Body Parser Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -110,7 +110,8 @@ app.get('/api/specializations', async (req, res) => {
     const result = await exec(`
       SELECT 
         SPECIALIZATIONID as ID, 
-        SPECIALIZATIONTYPE as NAME
+        SPECIALIZATIONTYPE as NAME,
+        SPEC_DESC as DESCRIPTION
       FROM SPECIALIZATION 
       ORDER BY SPECIALIZATIONTYPE
     `);
@@ -131,7 +132,7 @@ app.get('/api/specializations', async (req, res) => {
 
 // Add new specialization
 app.post('/api/specializations', async (req, res) => {
-  const { name } = req.body;
+  const { name, description } = req.body;
 
   // Validation
   if (!name) {
@@ -144,12 +145,13 @@ app.post('/api/specializations', async (req, res) => {
   try {
     const result = await exec(
       `INSERT INTO SPECIALIZATION 
-        (SPECIALIZATIONTYPE) 
+        (SPECIALIZATIONTYPE, SPEC_DESC) 
        VALUES 
-        (:name)
+        (:name, :description)
        RETURNING SPECIALIZATIONID INTO :id`,
       {
         name: name,
+        description: description || null,
         id: { dir: require('oracledb').BIND_OUT, type: require('oracledb').NUMBER }
       }
     );
@@ -157,7 +159,7 @@ app.post('/api/specializations', async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Specialization added successfully',
-      data: { id: result.outBinds.id[0], name }
+      data: { id: result.outBinds.id[0], name, description }
     });
   } catch (err) {
     console.error('Error adding specialization:', err);
@@ -2286,7 +2288,7 @@ app.post('/api/invoice', async (req, res) => {
     const finalAmount = totalamount 
       ? parseFloat(totalamount) + medicineCost 
       : medicineCost;
-
+       
     console.log(`Invoice for appointment ${appointmentid}: Base amount: ${totalamount || 0}, Medicine cost: ${medicineCost}, Final amount: ${finalAmount}`);
 
     const result = await exec(`
