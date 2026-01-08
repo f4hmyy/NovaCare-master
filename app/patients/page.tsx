@@ -82,12 +82,12 @@ export default function Patients() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 page-transition">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm animate-fade-in">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2 hover-scale smooth-transition">
               <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">N</span>
               </div>
@@ -97,12 +97,12 @@ export default function Patients() {
               </div>
             </Link>
             <div className="flex space-x-4">
-              <Link href="/" className="px-4 py-2 text-gray-600 hover:text-gray-900">
+              <Link href="/" className="px-4 py-2 text-gray-600 hover:text-gray-900 smooth-transition hover-scale">
                 Home
               </Link>
               <Link
                 href="/patients/add"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 hover:shadow-lg hover-lift smooth-transition btn-press"
               >
                 Add New Patient
               </Link>
@@ -113,7 +113,7 @@ export default function Patients() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 animate-fade-in-up">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Patients</h2>
             <p className="text-gray-600">Manage patient records and information</p>
@@ -127,7 +127,7 @@ export default function Patients() {
                 placeholder="Search by name, IC, phone, or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent smooth-transition"
               />
               <svg
                 className="absolute left-3 top-3.5 h-5 w-5 text-gray-400"
@@ -147,14 +147,14 @@ export default function Patients() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-100 text-red-800 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-100 text-red-800 border border-red-200 rounded-lg animate-fade-in-up">
               {error}
             </div>
           )}
 
           {/* Loading State */}
           {loading && (
-            <div className="text-center py-12">
+            <div className="text-center py-12 animate-fade-in">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
               <p className="mt-4 text-gray-600">Loading patients...</p>
             </div>
@@ -170,11 +170,11 @@ export default function Patients() {
                     .includes(searchQuery.toLowerCase())
                 );
                 return filteredPatients.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12 animate-fade-in-up">
                   <p className="text-gray-500 text-lg">No patients found</p>
                   <Link
                     href="/patients/add"
-                    className="mt-4 inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    className="mt-4 inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 hover:shadow-lg hover-lift smooth-transition btn-press"
                   >
                     Add Your First Patient
                   </Link>
@@ -204,8 +204,8 @@ export default function Patients() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredPatients.map((patient) => (
-                      <tr key={patient.PATIENT_IC} className="hover:bg-gray-50">
+                    {filteredPatients.map((patient, index) => (
+                      <tr key={patient.PATIENT_IC} className="hover:bg-indigo-50 smooth-transition stagger-item" style={{ animationDelay: `${index * 0.03}s` }}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {patient.PATIENT_IC}
                         </td>
@@ -228,13 +228,13 @@ export default function Patients() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <Link
                             href={`/patients/edit/${patient.PATIENT_IC}`}
-                            className="text-indigo-600 hover:text-indigo-900 mr-4"
+                            className="text-indigo-600 hover:text-indigo-900 mr-4 hover-scale smooth-transition"
                           >
                             Edit
                           </Link>
                           <button
                             onClick={() => handleDelete(patient.PATIENT_IC)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 hover-scale smooth-transition btn-press"
                           >
                             Delete
                           </button>

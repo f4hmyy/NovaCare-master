@@ -2,11 +2,11 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 page-transition">
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center">
-          <div className="inline-block mb-4 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold">
+        <div className="text-center animate-fade-in">
+          <div className="inline-block mb-4 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold hover-scale smooth-transition">
             For Clinic Staff & Administrators
           </div>
           <h2 className="text-5xl font-extrabold text-gray-900 sm:text-6xl mb-6">
@@ -19,19 +19,19 @@ export default function Home() {
           <div className="flex justify-center gap-4 flex-wrap">
             <Link 
               href="/appointments/add" 
-              className="px-8 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-lg shadow-lg transition"
+              className="px-8 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-lg shadow-lg hover:shadow-xl hover-lift smooth-transition btn-press"
             >
               Book Appointment
             </Link>
             <Link 
               href="/patients/add" 
-              className="px-8 py-4 bg-white text-indigo-600 rounded-lg hover:bg-gray-50 font-semibold text-lg shadow-lg border-2 border-indigo-600 transition"
+              className="px-8 py-4 bg-white text-indigo-600 rounded-lg hover:bg-gray-50 font-semibold text-lg shadow-lg hover:shadow-xl border-2 border-indigo-600 hover-lift smooth-transition btn-press"
             >
               Add Patient
             </Link>
             <Link 
               href="/prescriptions/add" 
-              className="px-8 py-4 bg-white text-indigo-600 rounded-lg hover:bg-gray-50 font-semibold text-lg shadow-lg border-2 border-indigo-600 transition"
+              className="px-8 py-4 bg-white text-indigo-600 rounded-lg hover:bg-gray-50 font-semibold text-lg shadow-lg hover:shadow-xl border-2 border-indigo-600 hover-lift smooth-transition btn-press"
             >
               New Prescription
             </Link>
@@ -39,13 +39,13 @@ export default function Home() {
         </div>
 
         {/* Features Section */}
-        <div className="mt-24">
+        <div className="mt-24 animate-fade-in-up">
           <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
             Quick Access
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/patients" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/patients" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">👥</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Patients</h4>
@@ -54,8 +54,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/appointments" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/appointments" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">📅</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Appointments</h4>
@@ -64,8 +64,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/prescriptions" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/prescriptions" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">💊</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Prescriptions</h4>
@@ -74,8 +74,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/doctors" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/doctors" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">👨‍⚕️</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Doctors</h4>
@@ -84,8 +84,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/staff" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/staff" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">👔</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Staff</h4>
@@ -94,8 +94,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/medicines" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/medicines" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">💉</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Medicines</h4>
@@ -104,8 +104,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/rooms" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/rooms" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">🏥</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Rooms</h4>
@@ -114,8 +114,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/roles" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/roles" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">🔑</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Roles</h4>
@@ -124,8 +124,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/medicalrecords" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/medicalrecords" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">📋</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Medical Records</h4>
@@ -134,8 +134,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/invoices" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/invoices" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition group">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 smooth-transition">
                 <span className="text-2xl">💰</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Invoices</h4>
@@ -144,8 +144,8 @@ export default function Home() {
               </p>
             </Link>
 
-            <Link href="/sqlquery" className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition border-2 border-indigo-200">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <Link href="/sqlquery" className="stagger-item bg-white p-6 rounded-xl shadow-md hover:shadow-xl hover-lift smooth-transition border-2 border-indigo-200 group">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 smooth-transition">
                 <span className="text-2xl">⚡</span>
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">SQL Query</h4>
@@ -157,7 +157,7 @@ export default function Home() {
         </div>
 
         {/* Quick Access Section */}
-        <div className="mt-24 bg-white rounded-2xl shadow-xl p-12">
+        <div className="mt-24 bg-white rounded-2xl shadow-xl p-12 animate-fade-in-up">
           <h3 className="text-2xl font-bold text-center text-gray-900 mb-8">
             System Status
           </h3>

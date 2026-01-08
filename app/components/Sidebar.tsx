@@ -42,25 +42,25 @@ export default function Sidebar() {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 smooth-transition hover-scale btn-press"
       >
         {isOpen ? "✕" : "☰"}
       </button>
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 shadow-lg transition-all duration-300 z-40 ${
+        className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 shadow-lg transition-all duration-300 ease-in-out z-40 ${
           isOpen ? "w-64" : "w-0 lg:w-20"
         } overflow-y-auto`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 smooth-transition hover:bg-gray-50">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 hover-scale smooth-transition">
               <span className="text-white font-bold text-xl">N</span>
             </div>
             {(isOpen || window.innerWidth >= 1024) && (
-              <div className={`${isOpen ? "block" : "hidden lg:hidden"}`}>
+              <div className={`${isOpen ? "block" : "hidden lg:hidden"} animate-fade-in`}>
                 <h1 className="text-xl font-bold text-gray-900">NovaCare</h1>
                 <p className="text-xs text-gray-500">Clinic System</p>
               </div>
@@ -88,14 +88,14 @@ export default function Sidebar() {
                     <li key={item.path}>
                       <Link
                         href={item.path}
-                        className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors ${
+                        className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ease-in-out ${
                           isActive
-                            ? "bg-indigo-50 text-indigo-600 font-semibold"
-                            : "text-gray-700 hover:bg-gray-100"
+                            ? "bg-indigo-50 text-indigo-600 font-semibold shadow-sm"
+                            : "text-gray-700 hover:bg-gray-100 hover:translate-x-1"
                         }`}
                         title={item.name}
                       >
-                        <span className="text-xl flex-shrink-0">{item.icon}</span>
+                        <span className="text-xl flex-shrink-0 smooth-transition hover-scale">{item.icon}</span>
                         {(isOpen || window.innerWidth >= 1024) && (
                           <span className={`${isOpen ? "block" : "hidden lg:hidden"}`}>
                             {item.name}
@@ -129,7 +129,7 @@ export default function Sidebar() {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30 animate-fade-in"
           onClick={() => setIsOpen(false)}
         />
       )}
