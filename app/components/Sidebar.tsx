@@ -17,6 +17,7 @@ export default function Sidebar() {
         { name: "Appointments", path: "/appointments", icon: "📅" },
         { name: "Medical Records", path: "/medicalrecords", icon: "📋" },
         { name: "Prescriptions", path: "/prescriptions", icon: "💊" },
+        { name: "Invoices", path: "/invoices", icon: "🧾" },
       ],
     },
     {

@@ -112,7 +112,13 @@ export default function Appointments() {
 
   // Quick stats calculations
   const todayDate = getTodayDate();
-  const todayAppointments = appointments.filter(apt => apt.APPOINTMENT_DATE.startsWith(todayDate));
+  const todayAppointments = appointments.filter(apt => {
+    const aptDate = new Date(apt.APPOINTMENT_DATE);
+    const aptLocalDate = new Date(aptDate.getTime() - (aptDate.getTimezoneOffset() * 60000))
+      .toISOString()
+      .split('T')[0];
+    return aptLocalDate === todayDate;
+  });
   const scheduledCount = todayAppointments.filter(apt => apt.STATUS === "Scheduled").length;
   const checkedInCount = todayAppointments.filter(apt => apt.STATUS === "Checked-In").length;
   const completedCount = todayAppointments.filter(apt => apt.STATUS === "Completed").length;
@@ -233,7 +239,14 @@ export default function Appointments() {
 
   const filteredAppointments = appointments
     .filter((apt) => {
-      const matchesDate = !filterDate || apt.APPOINTMENT_DATE.startsWith(filterDate);
+      // Fix timezone issue: normalize dates to local date strings for comparison
+      const matchesDate = !filterDate || (() => {
+        const aptDate = new Date(apt.APPOINTMENT_DATE);
+        const aptLocalDate = new Date(aptDate.getTime() - (aptDate.getTimezoneOffset() * 60000))
+          .toISOString()
+          .split('T')[0];
+        return aptLocalDate === filterDate;
+      })();
       const matchesStatus = filterStatus === "All" || apt.STATUS === filterStatus;
       const matchesSearch = !searchQuery || 
         `${apt.PATIENT_NAME} ${apt.DOCTOR_NAME} ${apt.REASON_TO_VISIT} ${apt.ROOM_TYPE}`
