@@ -19,14 +19,17 @@ export default function ViewDoctors() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    fetchDoctors();
-  }, []);
+  const [filterNoAppointments, setFilterNoAppointments] = useState(false);
 
   const fetchDoctors = async () => {
+    setLoading(true);
+    setError("");
     try {
-      const response = await fetch("http://localhost:5000/api/doctors");
+      const url = filterNoAppointments 
+        ? "http://localhost:5000/api/doctors/without-appointments"
+        : "http://localhost:5000/api/doctors";
+      
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
@@ -40,6 +43,10 @@ export default function ViewDoctors() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDoctors();
+  }, [filterNoAppointments]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this doctor?")) return;
@@ -100,8 +107,8 @@ export default function ViewDoctors() {
             <p className="text-gray-600">Manage all doctors in the system</p>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-6">
+          {/* Search Bar and Filter */}
+          <div className="mb-6 space-y-4">
             <div className="relative">
               <input
                 type="text"
@@ -123,6 +130,25 @@ export default function ViewDoctors() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
+            </div>
+            
+            {/* Filter Button */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setFilterNoAppointments(!filterNoAppointments)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  filterNoAppointments
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {filterNoAppointments ? '✓ ' : ''}Doctors Without Appointments
+              </button>
+              {filterNoAppointments && (
+                <span className="text-sm text-gray-600">
+                  Showing {doctors.length} doctor{doctors.length !== 1 ? 's' : ''} with no appointments
+                </span>
+              )}
             </div>
           </div>
 

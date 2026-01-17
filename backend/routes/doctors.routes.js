@@ -10,15 +10,16 @@ router.get('/', async (req, res) => {
         d.DOCTORID as DOCTOR_ID, 
         d.FIRSTNAME as FIRST_NAME, 
         d.LASTNAME as LAST_NAME, 
-        s.SPECIALIZATIONTYPE as SPECIALIZATION, 
+        (SELECT s.SPECIALIZATIONTYPE 
+        FROM SPECIALIZATION s 
+        WHERE s.SPECIALIZATIONID = d.SPECIALIZATIONID) as SPECIALIZATION, 
         d.EMAIL, 
         d.PHONENUM as PHONE, 
         d.LICENSENUM as LICENSE_NUMBER,
         d.STATUS
       FROM DOCTORS d
-      LEFT JOIN SPECIALIZATION s ON d.SPECIALIZATIONID = s.SPECIALIZATIONID
-      ORDER BY d.DOCTORID DESC
-    `);
+      ORDER BY d.DOCTORID DESC`
+    );
     
     res.json({
       success: true,
@@ -29,6 +30,48 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch doctors',
+      error: err.message
+    });
+  }
+});
+
+// Get doctors with no appointments (MINUS set operator)
+router.get('/without-appointments', async (req, res) => {
+  try {
+    const result = await exec(`
+      SELECT 
+        d.DOCTORID as DOCTOR_ID, 
+        d.FIRSTNAME as FIRST_NAME, 
+        d.LASTNAME as LAST_NAME, 
+        (SELECT s.SPECIALIZATIONTYPE 
+         FROM SPECIALIZATION s 
+         WHERE s.SPECIALIZATIONID = d.SPECIALIZATIONID) as SPECIALIZATION, 
+        d.EMAIL, 
+        d.PHONENUM as PHONE, 
+        d.LICENSENUM as LICENSE_NUMBER,
+        d.STATUS
+      FROM DOCTORS d
+      WHERE d.DOCTORID IN (
+        SELECT DOCTORID 
+        FROM DOCTORS 
+        MINUS 
+        SELECT d.DOCTORID 
+        FROM DOCTORS d 
+        JOIN APPOINTMENTS a ON d.DOCTORID = a.DOCTORID
+      )
+      ORDER BY d.DOCTORID DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows,
+      count: result.rows.length
+    });
+  } catch (err) {
+    console.error('Error fetching doctors without appointments:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch doctors without appointments',
       error: err.message
     });
   }
@@ -86,16 +129,18 @@ router.get('/:id', async (req, res) => {
   try {
     const result = await exec(
       `SELECT 
-        DOCTORID as DOCTOR_ID, 
-        FIRSTNAME as FIRST_NAME, 
-        LASTNAME as LAST_NAME, 
-        SPECIALIZATIONID as SPECIALIZATION, 
-        EMAIL, 
-        PHONENUM as PHONE, 
-        LICENSENUM as LICENSE_NUMBER,
-        STATUS
-       FROM DOCTORS 
-       WHERE DOCTORID = :id`,
+        d.DOCTORID as DOCTOR_ID, 
+        d.FIRSTNAME as FIRST_NAME, 
+        d.LASTNAME as LAST_NAME, 
+         (SELECT s.SPECIALIZATIONTYPE 
+        FROM SPECIALIZATION s 
+        WHERE s.SPECIALIZATIONID = d.SPECIALIZATIONID) as SPECIALIZATION, 
+        d.EMAIL, 
+        d.PHONENUM as PHONE, 
+        d.LICENSENUM as LICENSE_NUMBER,
+        d.STATUS
+       FROM DOCTORS d
+       WHERE d.DOCTORID = :id`,
       { id }
     );
 

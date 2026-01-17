@@ -17,15 +17,19 @@ router.get('/', async (req, res) => {
         a.REASONTOVISIT as REASON_TO_VISIT,
         a.STATUS,
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
+        p.PHONENUM as PATIENT_PHONE,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
-        s.FIRSTNAME || ' ' || s.LASTNAME as STAFF_NAME,
-        r.ROOMTYPE as ROOM_TYPE,
-        p.PHONENUM as PATIENT_PHONE
+        
+        (SELECT s.FIRSTNAME || ' ' || s.LASTNAME 
+         FROM STAFF s 
+         WHERE s.STAFFID = a.STAFFID) as STAFF_NAME,
+         
+        (SELECT r.ROOMTYPE 
+         FROM ROOMS r 
+         WHERE r.ROOMID = a.ROOMID) as ROOM_TYPE
       FROM APPOINTMENTS a
       JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
       JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
-      LEFT JOIN STAFF s ON a.STAFFID = s.STAFFID
-      LEFT JOIN ROOMS r ON a.ROOMID = r.ROOMID
       ORDER BY a.APPOINTMENTDATE DESC, a.APPOINTMENTTIME DESC
     `);
     
@@ -59,16 +63,23 @@ router.get('/date/:date', async (req, res) => {
         a.APPOINTMENTTIME as APPOINTMENT_TIME,
         a.REASONTOVISIT as REASON_TO_VISIT,
         a.STATUS,
+        
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
+        p.PHONENUM as PATIENT_PHONE,
         d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
-        s.FIRSTNAME || ' ' || s.LASTNAME as STAFF_NAME,
-        r.ROOMTYPE as ROOM_TYPE,
-        p.PHONENUM as PATIENT_PHONE
+
+        (SELECT s.FIRSTNAME || ' ' || s.LASTNAME 
+         FROM STAFF s 
+         WHERE s.STAFFID = a.STAFFID) as STAFF_NAME,
+
+        (SELECT r.ROOMTYPE 
+         FROM ROOMS r 
+         WHERE r.ROOMID = a.ROOMID) as ROOM_TYPE
+
       FROM APPOINTMENTS a
       JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
       JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
-      LEFT JOIN STAFF s ON a.STAFFID = s.STAFFID
-      LEFT JOIN ROOMS r ON a.ROOMID = r.ROOMID
+
       WHERE TRUNC(a.APPOINTMENTDATE) = TO_DATE(:date, 'YYYY-MM-DD')
       ORDER BY a.APPOINTMENTTIME`,
       { date }
@@ -176,17 +187,22 @@ router.get('/:id', async (req, res) => {
         a.APPOINTMENTTIME as APPOINTMENT_TIME,
         a.REASONTOVISIT as REASON_TO_VISIT,
         a.STATUS,
+        
         p.FIRSTNAME || ' ' || p.LASTNAME as PATIENT_NAME,
-        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
-        s.FIRSTNAME || ' ' || s.LASTNAME as STAFF_NAME,
-        r.ROOMTYPE as ROOM_TYPE,
         p.PHONENUM as PATIENT_PHONE,
-        p.EMAIL as PATIENT_EMAIL
+        p.EMAIL as PATIENT_EMAIL,
+        d.FIRSTNAME || ' ' || d.LASTNAME as DOCTOR_NAME,
+
+        (SELECT s.FIRSTNAME || ' ' || s.LASTNAME 
+         FROM STAFF s 
+         WHERE s.STAFFID = a.STAFFID) as STAFF_NAME,
+        (SELECT r.ROOMTYPE 
+         FROM ROOMS r 
+         WHERE r.ROOMID = a.ROOMID) as ROOM_TYPE
       FROM APPOINTMENTS a
       JOIN PATIENTS p ON a.PATIENTIC = p.PATIENTIC
       JOIN DOCTORS d ON a.DOCTORID = d.DOCTORID
-      LEFT JOIN STAFF s ON a.STAFFID = s.STAFFID
-      LEFT JOIN ROOMS r ON a.ROOMID = r.ROOMID
+
       WHERE a.APPOINTMENTID = :id`,
       { id }
     );
